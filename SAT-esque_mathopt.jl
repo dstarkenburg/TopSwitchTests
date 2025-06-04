@@ -4,16 +4,13 @@ import Plots
 
 model = Model(Ipopt.Optimizer)
 
-@variable(model, x >= 0, start = 0)
+@variable(model, x >= 0)
 
-@variable(model, y >= 0, start = 0)
+@variable(model, y >= 0)
 
-@variable(model, z, start = 0)
+@objective(model, Max, x*y)
 
-@objective(model, Min, x^2 + y^2 + z^2)
-
-@constraint(model, z == sin.(x) * y)
-@constraint(model, z >= 0.25)
+@constraint(model, 2x + y == 100)
 
 print(model)
 

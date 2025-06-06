@@ -28,4 +28,3 @@ objective_value(model)
 
 println(value(x))
 println(value(y))
-println(value(z))

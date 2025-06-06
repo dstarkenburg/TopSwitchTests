@@ -54,10 +54,10 @@ end
 # https://stats.stackexchange.com/questions/376312/mnist-digit-recognition-what-is-the-best-we-can-get-with-a-fully-connected-nn-o
 predictor = Flux.Chain(
     Flux.Dense(28^2 => 784, Flux.sigmoid),
-    Flux.Dense(784 => 400),
-    Flux.Dense(400 => 400),
+    Flux.Dense(784 => 400, Flux.sigmoid),
+    Flux.Dense(400 => 400, Flux.sigmoid),
     Flux.Dense(400 => 10),
-    Flux.softmax,
+    Flux.softmax
 )
 
 begin

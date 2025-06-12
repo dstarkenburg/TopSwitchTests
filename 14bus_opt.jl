@@ -2,6 +2,7 @@ using LinearSOC
 using PGLib, Test, Random
 using Gurobi
 using JuMP
+using Printf
 
 gurobi_optimizer = Gurobi.Optimizer
 
@@ -16,12 +17,31 @@ solution = solve_ops(data, gurobi_optimizer)
 solution["termination_status"] == JuMP.LOCALLY_SOLVED
 
 #num_branches = length(solution["solution"]["branch"])
-
+csvfile = open("branches.csv","w")
+println("Risk weight: " * string(data["risk_weight"]))
+write(csvfile, "alpha, branch, status, prisk\n")
+write(csvfile, string(data["risk_weight"]), "", "", "", "", "")
 for (key, value) in solution["solution"]["branch"]
-    if solution["solution"]["branch"][key]["br_status"] == 1.0
-        println("Branch: " * key *
-                ", Status: " * string(solution["solution"]["branch"][key]["br_status"]) *
-                ", Risk weight: " * string(data["risk_weight"]) *
-                ", Power risk: " * string(data["branch"][key]["power_risk"]))
-    else
+    @printf("Branch: %2i, Status: %2i, Power Risk: %05.2f\n", parse(Int8, key),
+             solution["solution"]["branch"][key]["br_status"],
+             data["branch"][key]["power_risk"])
+    temp = tuple("", parse(Int8, key),
+                    solution["solution"]["branch"][key]["br_status"],
+                     data["branch"][key]["power_risk"])
+    write(csvfile, join(temp, ","), "\n")
 end
+close(csvfile)
+csvfile = open("loads.csv","w")
+write(csvfile, "load, status, qd, pd\n")
+for (key, value) in solution["solution"]["load"]
+    @printf("Load: %2i, Status: %2i, Qd: %05.2f, Pd: %05.2f\n", parse(Int8, key),
+                    solution["solution"]["load"][key]["status"],
+                    solution["solution"]["load"][key]["qd"],
+                    solution["solution"]["load"][key]["pd"])
+    temp = tuple(parse(Int8, key),
+                    solution["solution"]["load"][key]["status"],
+                    solution["solution"]["load"][key]["qd"],
+                    solution["solution"]["load"][key]["pd"])
+    write(csvfile, join(temp, ","), "\n")
+end
+close(csvfile)

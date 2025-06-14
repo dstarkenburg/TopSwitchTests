@@ -19,7 +19,7 @@ solution["termination_status"] == JuMP.LOCALLY_SOLVED
 #num_branches = length(solution["solution"]["branch"])
 csvfile = open("branches.csv","w")
 println("Risk weight: " * string(data["risk_weight"]))
-write(csvfile, "alpha, branch, status, prisk\n")
+write(csvfile, "alpha,branch,status,prisk\n")
 write(csvfile, string(data["risk_weight"]), "", "", "", "", "")
 for (key, value) in solution["solution"]["branch"]
     @printf("Branch: %2i, Status: %2i, Power Risk: %05.2f\n", parse(Int8, key),
@@ -32,7 +32,7 @@ for (key, value) in solution["solution"]["branch"]
 end
 close(csvfile)
 csvfile = open("loads.csv","w")
-write(csvfile, "load, status, qd, pd\n")
+write(csvfile, "load,status,qd,pd\n")
 for (key, value) in solution["solution"]["load"]
     @printf("Load: %2i, Status: %2i, Qd: %05.2f, Pd: %05.2f\n", parse(Int8, key),
                     solution["solution"]["load"][key]["status"],

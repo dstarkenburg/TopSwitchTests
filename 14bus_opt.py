@@ -26,6 +26,7 @@ class TopologyDecisions(nn.Module):
 def perturb(tensor, scale=0.10):
     noise = torch.randn_like(tensor) * scale
     return tensor + noise
+
 # Load 'loads' data
 data = pd.read_csv('loads.csv')
 qd_vals = torch.tensor(data['qd'], dtype=torch.float32)
@@ -57,32 +58,21 @@ pd_base = pd_vals.clone()
 risk_base = branch_risks.clone()
 
 ## Train!!
-batch_epochs = 10
-total_epochs = 200
-for i in range(total_epochs):
-    for epoch in range(batch_epochs):
-        model.train()
+epochs = 200
+for i in range(epochs):
+    model.train()
+    optimizer.zero_grad()
 
-        optimizer.zero_grad()
+    output = model(x)
 
-        output = model(x)
+    loss = loss_func(output, target)
+    penalty = torch.sigmoid(output)
+    loss = loss + 0.01 * (penalty * risk_weight).mean() 
 
-        loss = loss_func(output, target)
+    optimizer.step()
 
-        penalty = torch.sigmoid(output)
-        loss = loss + 0.01 * (penalty * risk_weight).mean() 
-
-        optimizer.step()
-
-        if epoch % 10 == 0:
-            print(f"Epoch {epoch}: Loss = {loss.item():.4f}")
-
-    # Perturb data every 10 epochs
-    qd_vals = perturb(qd_base)
-    pd_vals = perturb(pd_base)
-    branch_risks = perturb(risk_base)
-    
-    x = torch.cat([pd_vals, qd_vals, branch_risks, branch_status, load_status], dim=0)
+    if epoch % 10 == 0:
+        print(f"Epoch {epoch}: Loss = {loss.item():.4f}")
 
 # Evaluate final model and output clammped probabilities of branch power
 model.eval()
@@ -92,3 +82,4 @@ with torch.no_grad():
 branch_binary = (probs > 0.5).int()
 
 print("Branch decisions (on/off):", branch_binary)
+

@@ -54,6 +54,19 @@ with h5py.File(filename, "r") as f:
         x_test_temp.append(x)
         y_test_temp.append(y)
 
+x_val_temp = []
+y_val_temp = []
+with h5py.File(filename, "r") as f:
+    for i in f["val_data"].keys():
+        temp_power_risk = torch.tensor(numpy.array(f["val_data"][i]["branch"]["power_risk"][()]), dtype=torch.float32)
+        temp_qd = torch.tensor(numpy.array(f["val_data"][i]["load"]["qd"][()]), dtype=torch.float32)
+        temp_qd = torch.tensor(numpy.array(f["val_data"][i]["load"]["pd"][()]), dtype=torch.float32)
+        temp_alpha = torch.tensor(numpy.array(f["val_data"][i]["alpha"][()]), dtype=torch.float32)
+        x = torch.cat([temp_power_risk, temp_qd, temp_qd, temp_alpha], dim = 0)
+        y = torch.tensor(numpy.array(f["val_data"][i]["branch"]["status"][()]), dtype=torch.float32)
+        x_val_temp.append(x)
+        y_val_temp.append(y)
+
 class OpsDataset(torch.utils.data.Dataset):
     def __init__(self, inputs, truths):
         self.inputs = inputs
@@ -69,16 +82,15 @@ num_branches = len(y_test_temp[1])
 input_dim = len(x_test_temp[1])
 
 train_dataset = OpsDataset(x_train_temp, y_train_temp)
-
-tests_dataset = OpsDataset(x_test_temp, y_test_temp)
-val_dataset, test_dataset = torch.utils.data.random_split(tests_dataset, [100, 100])
+test_dataset = OpsDataset(x_test_temp, y_test_temp)
+val_dataset = OpsDataset(x_val_temp, y_val_temp)
 
 model = TopologyDecisions(input_dim=input_dim, n_branches=num_branches)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
-train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size = 25)
-test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size = 25)
-val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size = 25)
+train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size = 50)
+test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size = 50)
+val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size = 50)
 
 train_losses = []
 val_losses = []

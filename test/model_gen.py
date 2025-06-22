@@ -1,22 +1,30 @@
 import torch
 import h5py
-import numpy
+import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.metrics import f1_score
 from torch import nn
 from torch import optim
 from torchvision import datasets, transforms
 from torch.utils.data import random_split, DataLoader
 import pandas as pd
 
+# Params
+epochs = 25
+hidden_dim_depth = 86
+batch_sizes = 100
+
 # Define model
 class TopologyDecisions(nn.Module):
-    def __init__(self, input_dim, n_branches=20,  hidden_dim=43):
+    def __init__(self, input_dim, n_branches=20,  hidden_dim=hidden_dim_depth):
         super().__init__()
         self.linear = torch.nn.Linear(input_dim, hidden_dim)
-        self.activation = torch.nn.Sigmoid()
+        self.activation = torch.nn.ReLU()
         self.linear2 = torch.nn.Linear(hidden_dim, hidden_dim)
-        self.activation2 = torch.nn.Sigmoid()
-        self.linear3= torch.nn.Linear(hidden_dim, n_branches)
+        self.activation2 = torch.nn.ReLU()
+        self.linear3 = torch.nn.Linear(hidden_dim, hidden_dim)
+        self.activation3 = torch.nn.ReLU()
+        self.linear4= torch.nn.Linear(hidden_dim, n_branches)
 
     def forward(self, x):
         x = self.linear(x)
@@ -24,6 +32,8 @@ class TopologyDecisions(nn.Module):
         x = self.linear2(x)
         x = self.activation2(x)
         x = self.linear3(x)
+        x = self.activation3(x)
+        x = self.linear4(x)
         return x
     
 # Import and format data
@@ -73,13 +83,20 @@ class OpsDataset(torch.utils.data.Dataset):
         self.truths = truths
 
     def __len__(self):
-        return len(self.truths)
+        return len(self.inputs)
 
     def __getitem__(self, idx):
         return self.inputs[idx], self.truths[idx]
 
 num_branches = len(y_test_temp[1])
 input_dim = len(x_test_temp[1])
+
+# Try normalizing inputs 
+mean = torch.mean(torch.stack(x_train_temp), dim=0)
+std = torch.std(torch.stack(x_train_temp), dim=0) + 1e-6
+x_train_temp = [(x - mean) / std for x in x_train_temp]
+x_test_temp = [(x - mean) / std for x in x_test_temp]
+x_val_temp = [(x - mean) / std for x in x_val_temp]
 
 train_dataset = OpsDataset(x_train_temp, y_train_temp)
 test_dataset = OpsDataset(x_test_temp, y_test_temp)
@@ -88,20 +105,21 @@ val_dataset = OpsDataset(x_val_temp, y_val_temp)
 model = TopologyDecisions(input_dim=input_dim, n_branches=num_branches)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
-train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size = 50)
-test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size = 50)
-val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size = 50)
+train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size = batch_sizes)
+test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size = batch_sizes)
+val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size = batch_sizes)
 
 train_losses = []
 val_losses = []
-epochs = 75
+
 criterion = nn.BCEWithLogitsLoss()
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 for i in range(epochs):
     model.train()
     train_loss = 0.0
     for input, truth in train_dataloader:
         if torch.cuda.is_available():
-            input, truth = input.cuda(), truth.cuda()
+            input, truth = input.to(device), truth.to(device)
             model.cuda()
         else:
             model.cpu()
@@ -121,35 +139,34 @@ for i in range(epochs):
     val_loss = 0.0
     for input, truth in val_dataloader:
         if torch.cuda.is_available():
-            input, truth = input.cuda(), truth.cuda()
+            input, truth = input.to(device), truth.to(device)
         
         output = model(input)
         loss = criterion(outputs, truth)
 
         val_loss += loss.item()
-    val_losses.append(val_loss / len(val_dataloader))  
-    #if i % 5 == 0:
+    val_losses.append(val_loss / len(val_dataloader)) 
     print(f"[Epoch {i+1}] Training loss: {train_loss / len(train_dataloader):.2f}, Validation loss: {val_loss / len(val_dataloader):.2f}")
 
 
-test_scores = []
+
+all_preds = []
+all_truths = []
 with torch.no_grad():
     for input, truth in test_dataloader:
-        if torch.cuda.is_available():
-            input, truth = input.cuda(), truth.cuda()
+        input, truth = input.to(device), truth.to(device)
         outputs = model(input)
-        clamp = torch.round(outputs)
-        
-        correct = 0
-        truth_size = len(truth)
-        for e, i in enumerate(clamp[0]):
-            if i == truth[0][e]:
-                correct += correct
-        test_scores.append(correct / truth_size)
-    print(f"Accuracy Average: {sum(test_scores) / len(test_scores)}")
-        
-        
+        probs = torch.sigmoid(outputs)
+        preds = (probs > 0.5).cpu().numpy()
+        all_preds.append(preds)
+        all_truths.append(truth.cpu().numpy())
 
+all_preds = np.vstack(all_preds)
+all_truths = np.vstack(all_truths)
+
+f1_per_branch = f1_score(all_truths, all_preds, average=None)
+print("F1 Score per branch:", f1_per_branch)
+print("Macro F1 Score:", np.mean(f1_per_branch))
 
 plt.plot(train_losses, label="Training Loss")
 plt.plot(val_losses, label="Validation Loss")

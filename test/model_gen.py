@@ -10,29 +10,36 @@ from torch.utils.data import random_split, DataLoader
 import pandas as pd
 
 # Params
-epochs = 25
-hidden_dim_depth = 86
+epochs = 15
+hidden_dim_depth = 10
 batch_sizes = 100
+dropout_percent = 0.2
 
 # Define model
 class TopologyDecisions(nn.Module):
     def __init__(self, input_dim, n_branches=20,  hidden_dim=hidden_dim_depth):
         super().__init__()
         self.linear = torch.nn.Linear(input_dim, hidden_dim)
-        self.activation = torch.nn.ReLU()
+        self.activation = torch.nn.GELU()
+        self.dropout = torch.nn.Dropout(dropout_percent)
         self.linear2 = torch.nn.Linear(hidden_dim, hidden_dim)
-        self.activation2 = torch.nn.ReLU()
+        self.activation2 = torch.nn.GELU()
+        self.dropout2 = torch.nn.Dropout(dropout_percent)
         self.linear3 = torch.nn.Linear(hidden_dim, hidden_dim)
-        self.activation3 = torch.nn.ReLU()
+        self.activation3 = torch.nn.GELU()
+        self.dropout3 = torch.nn.Dropout(dropout_percent)
         self.linear4= torch.nn.Linear(hidden_dim, n_branches)
 
     def forward(self, x):
         x = self.linear(x)
         x = self.activation(x)
+        x = self.dropout(x)  
         x = self.linear2(x)
         x = self.activation2(x)
+        x = self.dropout2(x)
         x = self.linear3(x)
         x = self.activation3(x)
+        x = self.dropout3(x)
         x = self.linear4(x)
         return x
     
@@ -42,12 +49,12 @@ x_train_temp = []
 y_train_temp = []
 with h5py.File(filename, "r") as f:
     for i in f["train_data"].keys():
-        temp_power_risk = torch.tensor(numpy.array(f["train_data"][i]["branch"]["power_risk"][()]), dtype=torch.float32)
-        temp_qd = torch.tensor(numpy.array(f["train_data"][i]["load"]["qd"][()]), dtype=torch.float32)
-        temp_qd = torch.tensor(numpy.array(f["train_data"][i]["load"]["pd"][()]), dtype=torch.float32)
-        temp_alpha = torch.tensor(numpy.array(f["train_data"][i]["alpha"][()]), dtype=torch.float32)
+        temp_power_risk = torch.tensor(np.array(f["train_data"][i]["branch"]["power_risk"][()]), dtype=torch.float32)
+        temp_qd = torch.tensor(np.array(f["train_data"][i]["load"]["qd"][()]), dtype=torch.float32)
+        temp_qd = torch.tensor(np.array(f["train_data"][i]["load"]["pd"][()]), dtype=torch.float32)
+        temp_alpha = torch.tensor(np.array(f["train_data"][i]["alpha"][()]), dtype=torch.float32)
         x = torch.cat([temp_power_risk, temp_qd, temp_qd, temp_alpha], dim = 0)
-        y = torch.tensor(numpy.array(f["train_data"][i]["branch"]["status"][()]), dtype=torch.float32)
+        y = torch.tensor(np.array(f["train_data"][i]["branch"]["status"][()]), dtype=torch.float32)
         x_train_temp.append(x)
         y_train_temp.append(y)
 
@@ -55,12 +62,12 @@ x_test_temp = []
 y_test_temp = []
 with h5py.File(filename, "r") as f:
     for i in f["test_data"].keys():
-        temp_power_risk = torch.tensor(numpy.array(f["test_data"][i]["branch"]["power_risk"][()]), dtype=torch.float32)
-        temp_qd = torch.tensor(numpy.array(f["test_data"][i]["load"]["qd"][()]), dtype=torch.float32)
-        temp_qd = torch.tensor(numpy.array(f["test_data"][i]["load"]["pd"][()]), dtype=torch.float32)
-        temp_alpha = torch.tensor(numpy.array(f["test_data"][i]["alpha"][()]), dtype=torch.float32)
+        temp_power_risk = torch.tensor(np.array(f["test_data"][i]["branch"]["power_risk"][()]), dtype=torch.float32)
+        temp_qd = torch.tensor(np.array(f["test_data"][i]["load"]["qd"][()]), dtype=torch.float32)
+        temp_qd = torch.tensor(np.array(f["test_data"][i]["load"]["pd"][()]), dtype=torch.float32)
+        temp_alpha = torch.tensor(np.array(f["test_data"][i]["alpha"][()]), dtype=torch.float32)
         x = torch.cat([temp_power_risk, temp_qd, temp_qd, temp_alpha], dim = 0)
-        y = torch.tensor(numpy.array(f["test_data"][i]["branch"]["status"][()]), dtype=torch.float32)
+        y = torch.tensor(np.array(f["test_data"][i]["branch"]["status"][()]), dtype=torch.float32)
         x_test_temp.append(x)
         y_test_temp.append(y)
 
@@ -68,12 +75,12 @@ x_val_temp = []
 y_val_temp = []
 with h5py.File(filename, "r") as f:
     for i in f["val_data"].keys():
-        temp_power_risk = torch.tensor(numpy.array(f["val_data"][i]["branch"]["power_risk"][()]), dtype=torch.float32)
-        temp_qd = torch.tensor(numpy.array(f["val_data"][i]["load"]["qd"][()]), dtype=torch.float32)
-        temp_qd = torch.tensor(numpy.array(f["val_data"][i]["load"]["pd"][()]), dtype=torch.float32)
-        temp_alpha = torch.tensor(numpy.array(f["val_data"][i]["alpha"][()]), dtype=torch.float32)
+        temp_power_risk = torch.tensor(np.array(f["val_data"][i]["branch"]["power_risk"][()]), dtype=torch.float32)
+        temp_qd = torch.tensor(np.array(f["val_data"][i]["load"]["qd"][()]), dtype=torch.float32)
+        temp_qd = torch.tensor(np.array(f["val_data"][i]["load"]["pd"][()]), dtype=torch.float32)
+        temp_alpha = torch.tensor(np.array(f["val_data"][i]["alpha"][()]), dtype=torch.float32)
         x = torch.cat([temp_power_risk, temp_qd, temp_qd, temp_alpha], dim = 0)
-        y = torch.tensor(numpy.array(f["val_data"][i]["branch"]["status"][()]), dtype=torch.float32)
+        y = torch.tensor(np.array(f["val_data"][i]["branch"]["status"][()]), dtype=torch.float32)
         x_val_temp.append(x)
         y_val_temp.append(y)
 
@@ -150,23 +157,19 @@ for i in range(epochs):
 
 
 
-all_preds = []
-all_truths = []
+total = 0
+correct = 0
 with torch.no_grad():
     for input, truth in test_dataloader:
         input, truth = input.to(device), truth.to(device)
         outputs = model(input)
         probs = torch.sigmoid(outputs)
-        preds = (probs > 0.5).cpu().numpy()
-        all_preds.append(preds)
-        all_truths.append(truth.cpu().numpy())
-
-all_preds = np.vstack(all_preds)
-all_truths = np.vstack(all_truths)
-
-f1_per_branch = f1_score(all_truths, all_preds, average=None)
-print("F1 Score per branch:", f1_per_branch)
-print("Macro F1 Score:", np.mean(f1_per_branch))
+        preds = (probs > 0.5).float()
+        correct += (preds == truth).sum().item()
+        total += torch.numel(truth)
+        
+print(f"Accuracy Average: {correct / total:.4f}")
+        
 
 plt.plot(train_losses, label="Training Loss")
 plt.plot(val_losses, label="Validation Loss")

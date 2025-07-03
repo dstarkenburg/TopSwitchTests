@@ -29,7 +29,6 @@ class TopologyDecisions(nn.Module):
         self.activation3 = torch.nn.GELU()
         self.dropout3 = torch.nn.Dropout(dropout_percent)
         self.linear4= torch.nn.Linear(hidden_dim, n_branches)
-
     def forward(self, x):
         x = self.linear(x)
         x = self.activation(x)
@@ -51,9 +50,9 @@ with h5py.File(filename, "r") as f:
     for i in f["train_data"].keys():
         temp_power_risk = torch.tensor(np.array(f["train_data"][i]["branch"]["power_risk"][()]), dtype=torch.float32)
         temp_qd = torch.tensor(np.array(f["train_data"][i]["load"]["qd"][()]), dtype=torch.float32)
-        temp_qd = torch.tensor(np.array(f["train_data"][i]["load"]["pd"][()]), dtype=torch.float32)
+        temp_pd = torch.tensor(np.array(f["train_data"][i]["load"]["pd"][()]), dtype=torch.float32)
         temp_alpha = torch.tensor(np.array(f["train_data"][i]["alpha"][()]), dtype=torch.float32)
-        x = torch.cat([temp_power_risk, temp_qd, temp_qd, temp_alpha], dim = 0)
+        x = torch.cat([temp_power_risk, temp_qd, temp_pd, temp_alpha], dim = 0)
         y = torch.tensor(np.array(f["train_data"][i]["branch"]["status"][()]), dtype=torch.float32)
         x_train_temp.append(x)
         y_train_temp.append(y)
@@ -64,9 +63,9 @@ with h5py.File(filename, "r") as f:
     for i in f["test_data"].keys():
         temp_power_risk = torch.tensor(np.array(f["test_data"][i]["branch"]["power_risk"][()]), dtype=torch.float32)
         temp_qd = torch.tensor(np.array(f["test_data"][i]["load"]["qd"][()]), dtype=torch.float32)
-        temp_qd = torch.tensor(np.array(f["test_data"][i]["load"]["pd"][()]), dtype=torch.float32)
+        temp_pd = torch.tensor(np.array(f["test_data"][i]["load"]["pd"][()]), dtype=torch.float32)
         temp_alpha = torch.tensor(np.array(f["test_data"][i]["alpha"][()]), dtype=torch.float32)
-        x = torch.cat([temp_power_risk, temp_qd, temp_qd, temp_alpha], dim = 0)
+        x = torch.cat([temp_power_risk, temp_qd, temp_pd, temp_alpha], dim = 0)
         y = torch.tensor(np.array(f["test_data"][i]["branch"]["status"][()]), dtype=torch.float32)
         x_test_temp.append(x)
         y_test_temp.append(y)
@@ -77,9 +76,9 @@ with h5py.File(filename, "r") as f:
     for i in f["val_data"].keys():
         temp_power_risk = torch.tensor(np.array(f["val_data"][i]["branch"]["power_risk"][()]), dtype=torch.float32)
         temp_qd = torch.tensor(np.array(f["val_data"][i]["load"]["qd"][()]), dtype=torch.float32)
-        temp_qd = torch.tensor(np.array(f["val_data"][i]["load"]["pd"][()]), dtype=torch.float32)
+        temp_pd = torch.tensor(np.array(f["val_data"][i]["load"]["pd"][()]), dtype=torch.float32)
         temp_alpha = torch.tensor(np.array(f["val_data"][i]["alpha"][()]), dtype=torch.float32)
-        x = torch.cat([temp_power_risk, temp_qd, temp_qd, temp_alpha], dim = 0)
+        x = torch.cat([temp_power_risk, temp_qd, temp_pd, temp_alpha], dim = 0)
         y = torch.tensor(np.array(f["val_data"][i]["branch"]["status"][()]), dtype=torch.float32)
         x_val_temp.append(x)
         y_val_temp.append(y)
@@ -88,10 +87,8 @@ class OpsDataset(torch.utils.data.Dataset):
     def __init__(self, inputs, truths):
         self.inputs = inputs
         self.truths = truths
-
     def __len__(self):
         return len(self.inputs)
-
     def __getitem__(self, idx):
         return self.inputs[idx], self.truths[idx]
 
@@ -155,7 +152,26 @@ for i in range(epochs):
     val_losses.append(val_loss / len(val_dataloader)) 
     print(f"[Epoch {i+1}] Training loss: {train_loss / len(train_dataloader):.2f}, Validation loss: {val_loss / len(val_dataloader):.2f}")
 
+preds_vec = []
+truths_vec = []
+with torch.no_grad():
+    for input, truth in test_dataloader:
+        input, truth = input.to(device), truth.to(device)
+        outputs = model(input)
+        probs = torch.sigmoid(outputs)
+        preds = (probs > 0.5).float()
+        for i in preds:
+            preds_vec.append(i)
+        for i in truth:
+            truths_vec.append(i)
 
+total = len(preds_vec)
+correct = 0
+for e, i in enumerate(preds_vec):
+    if (i == truths_vec[e]).sum().item() == num_branches:
+        correct += 1
+
+print(f"Total Accuracy Average: {correct / total * 100:.4f}")
 
 total = 0
 correct = 0
@@ -167,8 +183,8 @@ with torch.no_grad():
         preds = (probs > 0.5).float()
         correct += (preds == truth).sum().item()
         total += torch.numel(truth)
-        
-print(f"Accuracy Average: {correct / total:.4f}")
+
+print(f"Branchwise Accuracy Average: {correct / total * 100:.4f}")
         
 
 plt.plot(train_losses, label="Training Loss")

@@ -2,48 +2,26 @@ import torch
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import f1_score
 from torch import nn
 from torch import optim
 from torchvision import datasets, transforms
-from torch.utils.data import random_split, DataLoader
+from torch.utils.data import DataLoader
 import pandas as pd
 
-# Params
+# Hyperparams
 epochs = 15
+
 hidden_dim_depth = 10
+
 batch_sizes = 100
+
 dropout_percent = 0.2
 
-# Define model
-class TopologyDecisions(nn.Module):
-    def __init__(self, input_dim, n_branches=20,  hidden_dim=hidden_dim_depth):
-        super().__init__()
-        self.linear = torch.nn.Linear(input_dim, hidden_dim)
-        self.activation = torch.nn.GELU()
-        self.dropout = torch.nn.Dropout(dropout_percent)
-        self.linear2 = torch.nn.Linear(hidden_dim, hidden_dim)
-        self.activation2 = torch.nn.GELU()
-        self.dropout2 = torch.nn.Dropout(dropout_percent)
-        self.linear3 = torch.nn.Linear(hidden_dim, hidden_dim)
-        self.activation3 = torch.nn.GELU()
-        self.dropout3 = torch.nn.Dropout(dropout_percent)
-        self.linear4= torch.nn.Linear(hidden_dim, n_branches)
-    def forward(self, x):
-        x = self.linear(x)
-        x = self.activation(x)
-        x = self.dropout(x)  
-        x = self.linear2(x)
-        x = self.activation2(x)
-        x = self.dropout2(x)
-        x = self.linear3(x)
-        x = self.activation3(x)
-        x = self.dropout3(x)
-        x = self.linear4(x)
-        return x
-    
+learn_rate = 1e-4
+
+filename = "data_file_14bus.h5"
+
 # Import and format data
-filename = "data.h5"
 x_train_temp = []
 y_train_temp = []
 with h5py.File(filename, "r") as f:
@@ -106,8 +84,15 @@ train_dataset = OpsDataset(x_train_temp, y_train_temp)
 test_dataset = OpsDataset(x_test_temp, y_test_temp)
 val_dataset = OpsDataset(x_val_temp, y_val_temp)
 
-model = TopologyDecisions(input_dim=input_dim, n_branches=num_branches)
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+model = torch.nn.Sequential(torch.nn.Linear(input_dim, hidden_dim_depth),
+                            torch.nn.ReLU(),
+                            torch.nn.Dropout(dropout_percent),
+                            torch.nn.Linear(input_dim, hidden_dim_depth),
+                            torch.nn.ReLU(), torch.nn.Dropout(dropout_percent),
+                            torch.nn.Linear(input_dim, hidden_dim_depth),
+                            torch.nn.ReLU(), torch.nn.Dropout(dropout_percent),
+                            torch.nn.Linear(hidden_dim_depth, num_branches))
+optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
 
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size = batch_sizes)
 test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size = batch_sizes)

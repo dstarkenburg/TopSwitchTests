@@ -10,14 +10,14 @@ import PythonCall
 using JuMP
 
 
-optimizer = Ipopt.Optimizer
+optimizer = Gurobi.Optimizer
 model = Model(optimizer)
 set_silent(model)
 @variable(model, x[i=1:43])
 
 predictor = MathOptAI.PytorchModel(joinpath(@__DIR__, "trained_model2.pt"))
 y, _ = MathOptAI.add_predictor(model, predictor, x)
-#σ(x) = 1 / (1 + exp(-x))
+σ(x) = 1 / (1 + exp(-x))
 
 data = pglib("case14_")
 
@@ -26,10 +26,21 @@ qd_lower_bounds = Float32[]
 pd_upper_bounds = Float32[]
 pd_lower_bounds = Float32[]
 for (key, value) in data["load"]
-    push!(qd_upper_bounds, value["qd"] * 2)
-    push!(pd_upper_bounds, value["pd"] * 2)
-    push!(qd_lower_bounds, value["qd"] * 0.25)
-    push!(pd_lower_bounds, value["pd"] * 0.25)
+    if (value["pd"] > 0)
+        push!(pd_upper_bounds, value["pd"] * 2)
+        push!(pd_lower_bounds, value["pd"] * 0.25)
+    else
+        push!(pd_upper_bounds, value["pd"] * 0.25)
+        push!(pd_lower_bounds, value["pd"] * 2)
+    end
+
+    if (value["qd"] > 0)
+        push!(qd_upper_bounds, value["qd"] * 2)
+        push!(qd_lower_bounds, value["qd"] * 0.25)
+    else
+        push!(qd_upper_bounds, value["qd"] * 0.25)
+        push!(qd_lower_bounds, value["qd"] * 2)
+    end    
 end
 alpha_upper_bound = 0.9
 alpha_lower_bound = 0
@@ -52,6 +63,12 @@ for (e, i) in enumerate(x)
     end
 end
 
-@objective(model, Min, sum(y))
+#for (e, i) in enumerate(y)
+#    @constraint(model, σ(y[e]) <= 0.5)
+#end
+
+@objective(model, Min, 0)
+
+#set_optimizer_attribute(model, "max_iter", 6000)
 
 optimize!(model)

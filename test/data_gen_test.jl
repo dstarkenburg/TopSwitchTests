@@ -1,5 +1,5 @@
 using LinearSOC
-using PGLib, Test, Random
+using PGLib, Random
 using Gurobi
 using JuMP
 using Printf
@@ -11,19 +11,19 @@ using HDF5
 gurobi_optimizer = Gurobi.Optimizer
 
 # PGLib model
-model_name = "case14_"
+model_name = "case24_ieee"
 
 # Number of datasets
-n_test = 1#0000
-n_train = 8#0000
-n_val = 1#0000
+n_test = 10000
+n_train = 80000
+n_val = 10000
 
 # Hyperparams
-alpha = alpha = 0.9 * rand()
+alpha = 0.25 + 0.6 * rand()
 perturb_percent = 0.75
 
 # Filename (WILL OVERWRITE)
-h5write_filename = "data_file_test.h5"
+h5write_filename = "data_file_24bus.h5"
 
 # Debug?
 debug = true
@@ -95,6 +95,7 @@ h5open(h5write_filename, "w") do file
         group = create_group(g_test, string(i))
 
         # Load data
+        load = create_group(group, "load")
         (qd_vals, pd_vals) = (Float32[], Float32[])
         for (key, value) in data["load"]
             push!(qd_vals, value["qd"])
@@ -271,4 +272,5 @@ h5open(h5write_filename, "w") do file
         println(@printf("Val Mixed: %f", val_mixed))
     end
     # # # # # # # # # # # #
+    close(file)
 end

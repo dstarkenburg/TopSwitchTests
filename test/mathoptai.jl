@@ -8,14 +8,16 @@ import MathOptInterface as MOI
 ENV["JULIA_PYTHONCALL_EXE"] = "/pyenv-june/bin/python3"
 import PythonCall
 using JuMP
+import PowerModels
+import PowerModelsWildfire as pmw
 
 
-optimizer = Gurobi.Optimizer
+optimizer = Ipopt.Optimizer
 model = Model(optimizer)
 set_silent(model)
 @variable(model, x[i=1:43])
 
-predictor = MathOptAI.PytorchModel(joinpath(@__DIR__, "trained_model2.pt"))
+predictor = MathOptAI.PytorchModel(joinpath(@__DIR__, "trained_model.pt"))
 y, _ = MathOptAI.add_predictor(model, predictor, x)
 σ(x) = 1 / (1 + exp(-x))
 
@@ -67,8 +69,10 @@ end
 #    @constraint(model, σ(y[e]) <= 0.5)
 #end
 
-@objective(model, Min, 0)
+@objective(model, Min, sum(σ.(y)))
 
 #set_optimizer_attribute(model, "max_iter", 6000)
 
 optimize!(model)
+
+result = pmw._run_redispatch(data, PowerModels.SOCWRPowerModel, optimizer)

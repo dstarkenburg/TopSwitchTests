@@ -20,7 +20,7 @@ n_val = 10000
 
 # Hyperparams
 alpha = 0.25 + 0.6 * rand()
-perturb_percent = 0.75
+perturb_percent = 0.50
 
 # Filename (WILL OVERWRITE)
 h5write_filename = "data_file_24bus.h5"

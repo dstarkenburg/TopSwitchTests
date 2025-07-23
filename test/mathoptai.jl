@@ -11,6 +11,7 @@ using JuMP
 import PowerModels
 import PowerModelsWildfire as pmw
 
+data = pglib("case14_")
 
 optimizer = Ipopt.Optimizer
 model = Model(optimizer)
@@ -20,8 +21,6 @@ set_silent(model)
 predictor = MathOptAI.PytorchModel(joinpath(@__DIR__, "trained_model.pt"))
 y, _ = MathOptAI.add_predictor(model, predictor, x)
 σ(x) = 1 / (1 + exp(-x))
-
-data = pglib("case14_")
 
 qd_upper_bounds = Float32[]
 qd_lower_bounds = Float32[]
@@ -50,15 +49,15 @@ power_risk_upper_bound = 1
 power_risk_lower_bound = 0
 
 for (e, i) in enumerate(x)
-    if 1 <= e <= 20
+    if (1 <= e <= length(data["branch"]))
         @constraint(model, x[e] >= power_risk_lower_bound)
         @constraint(model, x[e] <= power_risk_upper_bound)
-    elseif 21 <= e <= 31
-        @constraint(model, x[e] >= qd_lower_bounds[e - 20])
-        @constraint(model, x[e] <= qd_upper_bounds[e - 20])
-    elseif 33 <= e <= 43
-        @constraint(model, x[e] >= pd_lower_bounds[e - 32])
-        @constraint(model, x[e] <= pd_upper_bounds[e - 32])
+    elseif (length(data["branch"]) + 1 <= e <= (length(data["branch"]) + 1 + length(qd_upper_bounds)))
+        @constraint(model, x[e] >= qd_lower_bounds[e - length(data["branch"])])
+        @constraint(model, x[e] <= qd_upper_bounds[e - length(data["branch"])])
+    elseif ((length(data["branch"]) + 1 + length(qd_upper_bounds) + 1) <= e <= (length(data["branch"]) + 1 + length(qd_upper_bounds) + 1 + length(pd_upper_bounds)))
+        @constraint(model, x[e] >= pd_lower_bounds[e - (length(data["branch"]) + length(qd_upper_bounds))])
+        @constraint(model, x[e] <= pd_upper_bounds[e - (length(data["branch"]) + length(qd_upper_bounds))])
     else
         @constraint(model, x[e] >= alpha_lower_bound)
         @constraint(model, x[e] <= alpha_upper_bound)
@@ -75,4 +74,11 @@ end
 
 optimize!(model)
 
-result = pmw._run_redispatch(data, PowerModels.SOCWRPowerModel, optimizer)
+model_decisions = convert(Vector{Int64}, σ.(value.(y)) .>= 0.5)
+
+re_data = deepcopy(data)
+for (e, (id, branch)) in enumerate(re_data["branch"])
+   re_data["branch"][id]["br_status"] = model_decisions[e]
+end
+
+result = pmw._run_redispatch(re_data, PowerModels.SOCWRPowerModel, optimizer)

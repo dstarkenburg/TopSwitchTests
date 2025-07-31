@@ -1,0 +1,141 @@
+using LinearSOC
+using PGLib, Random
+using Gurobi
+using JuMP
+using Printf
+using HDF5
+
+#----------------------------------------------------------------------
+
+# Optimizer
+gurobi_optimizer = Gurobi.Optimizer
+
+# PGLib model
+model_name = "case24_ieee"
+
+# Filename (WILL OVERWRITE)
+h5write_filename = "data_file_24bus.h5"
+
+# Number of datasets
+n_test = 10000
+n_train = 80000
+n_val = 10000
+
+# Hyperparams
+alpha = 0.25 + 0.6 * rand()
+perturb_percent = 0.50
+
+
+
+# Debug?
+debug = true
+
+#----------------------------------------------------------------------
+data = pglib(model_name)
+data_copy = pglib(model_name)
+
+Random.seed!(1234)
+
+function generate_pd_qd!(data, data_copy)
+    for (id, comp) in data["load"]
+        comp["qd"] = data_copy["load"][id]["qd"]*(1-perturb_percent) + (2 * perturb_percent)*data_copy["load"][id]["qd"] * rand()
+        comp["pd"] = data_copy["load"][id]["pd"]*(1-perturb_percent) + (2 * perturb_percent)*data_copy["load"][id]["pd"] * rand()
+    end
+    return data
+end
+
+h5open(h5write_filename, "w") do file
+    g_test = create_group(file, "test_data")
+    write_dataset(g_test, "index", [1])
+    write_dataset(g_test, "num_samples", [n_test])
+    for i in 1:n_test
+        generate_risk!(data, alpha)
+        generate_pd_qd!(data, data_copy)
+
+        group = create_group(g_test, string(i))
+
+        # Load data
+        load = create_group(group, "load")
+        (qd_vals, pd_vals) = (Float32[], Float32[])
+        for (key, value) in data["load"]
+            push!(qd_vals, value["qd"])
+            push!(pd_vals, value["pd"])
+        end
+        write_dataset(load, "qd", qd_vals)
+        write_dataset(load, "pd", pd_vals)
+
+        # Branch data
+        branch = create_group(group, "branch")
+        (prisk) = (Float32[])
+        for (key, value) in data["branch"]
+            push!(prisk, data["branch"][key]["power_risk"])
+        end
+        write_dataset(branch, "power_risk", prisk)
+        
+        # Alpha
+        write_dataset(group, "alpha", [data["risk_weight"]])
+    end
+
+    g_train = create_group(file, "train_data")
+    write_dataset(g_train, "index", [1])
+    write_dataset(g_train, "num_samples", [n_train])
+    for i in 1:n_train
+        generate_risk!(data, alpha)
+        generate_pd_qd!(data, data_copy)
+
+        group = create_group(g_train, string(i))
+
+        # Load data
+        load = create_group(group, "load")
+        (qd_vals, pd_vals) = (Float32[], Float32[])
+        for (key, value) in data["load"]
+            push!(qd_vals, value["qd"])
+            push!(pd_vals, value["pd"])
+        end
+        write_dataset(load, "qd", qd_vals)
+        write_dataset(load, "pd", pd_vals)
+
+        # Branch data
+        branch = create_group(group, "branch")
+        (prisk) = (Float32[])
+        for (key, value) in data["branch"]
+            push!(prisk, data["branch"][key]["power_risk"])
+        end
+        write_dataset(branch, "power_risk", prisk)
+        
+        # Alpha
+        write_dataset(group, "alpha", [data["risk_weight"]])
+    end
+
+    g_val = create_group(file, "val_data")
+    write_dataset(g_val, "index", [1])
+    write_dataset(g_val, "num_samples", [n_val])
+    for i in 1:n_val
+        generate_risk!(data, alpha)
+        generate_pd_qd!(data, data_copy)
+
+        group = create_group(g_val, string(i))
+
+        # Load data
+        load = create_group(group, "load")
+        (qd_vals, pd_vals) = (Float32[], Float32[])
+        for (key, value) in data["load"]
+            push!(qd_vals, value["qd"])
+            push!(pd_vals, value["pd"])
+        end
+        write_dataset(load, "qd", qd_vals)
+        write_dataset(load, "pd", pd_vals)
+
+        # Branch data
+        branch = create_group(group, "branch")
+        (prisk) = (Float32[])
+        for (key, value) in data["branch"]
+            push!(prisk, data["branch"][key]["power_risk"])
+        end
+        write_dataset(branch, "power_risk", prisk)
+        
+        # Alpha
+        write_dataset(group, "alpha", [data["risk_weight"]])
+    end
+    close(file)
+end

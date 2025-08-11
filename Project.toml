@@ -1,0 +1,18 @@
+name = "TopSwitchTests"
+uuid = "d0c23c3f-77b9-44f7-bafd-88ea321a1734"
+authors = ["Duncan Starkenburg <duncan@starkenburg.com>"]
+version = "0.1.0"
+
+[deps]
+Gurobi = "2e9cd046-0924-5485-92f1-d5272153d98b"
+HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
+JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
+LinearSOC = "eca9e247-49c9-4aee-924a-0884d9dc0e25"
+MathOptAI = "e52c2cb8-508e-4e12-9dd2-9c4755b60e73"
+MathOptInterface = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
+PGLib = "07a8691f-3d11-4330-951b-3c50f98338be"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+PowerModels = "c36e90e8-916a-50a6-bd94-075b64ef4655"
+PowerModelsWildfire = "01a8e460-0890-11ea-3f19-8b8faecc21cc"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"

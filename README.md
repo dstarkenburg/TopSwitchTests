@@ -1,3 +1,3 @@
 # TopSwitchTests
 
-Everything that is working is in test folder!
+A julia module of the Gurobi > Julia > PyTorch > MathOptAI pipeline by Duncan Starkenburg

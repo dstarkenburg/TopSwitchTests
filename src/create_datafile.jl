@@ -1,10 +1,3 @@
-using LinearSOC
-using PGLib, Random
-using Gurobi
-using JuMP
-using Printf
-using HDF5
-
 #----------------------------------------------------------------------
 
 # Optimizer

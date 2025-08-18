@@ -60,7 +60,7 @@ h5open(h5write_filename, "w") do file
 
         # Load data
         load = create_group(group, "load")
-        size = length(data["load"])
+        size = length(keys(data["load"]))
         (qd_vals, pd_vals) = (Array{Float32}(undef, 0, size), Array{Float32}(undef, 0, size))
         for (key, value) in data["load"]
             qd_vals[parse(Int, key)] = value["qd"]
@@ -93,7 +93,7 @@ h5open(h5write_filename, "w") do file
 
         # Load data
         load = create_group(group, "load")
-        size = length(data["load"])
+        size = length(keys(data["load"]))
         (qd_vals, pd_vals) = (Array{Float32}(undef, 0, size), Array{Float32}(undef, 0, size))
         for (key, value) in data["load"]
             qd_vals[parse(Int, key)] = value["qd"]
@@ -126,7 +126,7 @@ h5open(h5write_filename, "w") do file
 
         # Load data
         load = create_group(group, "load")
-        size = length(data["load"])
+        size = length(keys(data["load"]))
         (qd_vals, pd_vals) = (Array{Float32}(undef, 0, size), Array{Float32}(undef, 0, size))
         for (key, value) in data["load"]
             qd_vals[parse(Int, key)] = value["qd"]

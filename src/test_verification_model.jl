@@ -12,8 +12,6 @@ using Printf
 # 2) parameterize loads and shunts with relaxed binaries
 # 3) parameterize lines with relaxed binaries
 # 4) set the objective to minimize the total amount of load shed
-data = pglib("case5_")
-data = pglib("case24_ieee")
 data = pglib("case14_")
 
 PowerModels.calc_thermal_limits!(data)
@@ -43,33 +41,70 @@ end
 @warn("adding line binaries")
 @variable(model, 0.0 <= z_branch[l in keys(ref[:branch])] <= 1.0)
 
-#TODO add a constraint which links the loads and NN inputs
-#pd_nn = ref[:load][d]["pd"]^2 * z_demand[d] 
+
+## Hard Coded
 
 num_loads = length(keys(ref[:load]))
 @variable(model, pd_variable[1:num_loads])
 @variable(model, qd_variable[1:num_loads])
-@variable(model, risk[1:20])
-@variable(model, alpha[1])
-#for d in keys(ref[:load])
-#    pdi = ref[:load][d]["pd"]
-#    qdi = ref[:load][d]["qd"]
+@variable(model, 0 <= risk[1:20] <= 1)
+@variable(model, 0.25 <= alpha[1] <= 0.85)
+
+pdmax = Array{Float32}(undef, 0, num_loads)
+pdmin = Array{Float32}(undef, 0, num_loads)
+qdmax = Array{Float32}(undef, 0, num_loads)
+qdmin = Array{Float32}(undef, 0, num_loads)
+for (key, value) in ref[:load]
+        qdmax[key] = value["qd"] * 1.5 
+        pdmax[key] = value["pd"] * 1.5
+        qdmin[key] = value["qd"] * 0.5
+        pdmin[key] = value["pd"] * 0.5
+end
+
+## Dynamic
+
+#using HDF5
+#filename = "data_file_14bus.h5"
+#file = h5open(filename, "r+")
+#alpha_max = copy(file["alpha_max"])
+#alpha_min = copy(file["alpha_min"])
+#perturb_percent = copy(file["perturb_percent"])
+#close(file)
+#num_loads = length(keys(ref[:load]))
+#@variable(model, pd_variable[1:num_loads])
+#@variable(model, qd_variable[1:num_loads])
+#@variable(model, 0 <= risk[1:20] <= 1)
+#@variable(model, alpha_min <= alpha[1] <= alpha_max)
+#
+#pdmax = Array{Float32}(undef, 0, num_loads)
+#pdmin = Array{Float32}(undef, 0, num_loads)
+#qdmax = Array{Float32}(undef, 0, num_loads)
+#qdmin = Array{Float32}(undef, 0, num_loads)
+#for (key, value) in ref[:load]
+#        qdmax[key] = value["qd"] * (1-perturb_percent) + (2 * perturb_percent)
+#        pdmax[key] = value["pd"] * (1-perturb_percent) + (2 * perturb_percent)
+#        qdmin[key] = value["qd"] * (1-perturb_percent)
+#        pdmin[key] = value["pd"] * (1-perturb_percent)
 #end
 
-# TODO make sure we add bounds on the following inputs!
+
+for (e, x) in enumerate(pd_variable)
+    @constraint(model, pdmin[e] <= x <= pdmax[e])
+end
+for (e, x) in enumerate(qd_variable)
+    @constraint(model, qdmin[e] <= x <= qdmax[e])
+end
+
 x = [pd_variable;
      qd_variable;
-     risk;     # these are variables [0.2 - 0.85]
-     alpha]    # this is a variable [0.2 - 0.85]
+     risk;
+     alpha]    
 
 # %%
-probs = NN(x_in,A,b)
-
-# something like this:
+predictor = MathOptAI.PytorchModel(joinpath(@__DIR__, "trained_model.pt"))
 probs, _ = MathOptAI.add_predictor(model, predictor, x)
 
 #TODO add a NN linking constraint like this:
-#probs = NN(x_input,A,b) # replace with torch model
 #TODO make sure the NN and the line indices are the same
 @constraint(model, [l in keys(ref[:branch])], z_branch[l] == probs[l])
 

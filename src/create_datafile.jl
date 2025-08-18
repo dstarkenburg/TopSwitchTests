@@ -1,6 +1,9 @@
 #----------------------------------------------------------------------
-using PGLib, HDF5
+using LinearSOC
+using LinearSOCVerification
+using PGLib, Random
 using Gurobi
+using JuMP
 
 # Optimizer
 gurobi_optimizer = Gurobi.Optimizer

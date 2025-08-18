@@ -1,5 +1,6 @@
 #----------------------------------------------------------------------
 using PGLib, HDF5
+using Gurobi
 
 # Optimizer
 gurobi_optimizer = Gurobi.Optimizer

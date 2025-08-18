@@ -61,7 +61,7 @@ h5open(h5write_filename, "w") do file
         # Load data
         load = create_group(group, "load")
         size = length(keys(data["load"]))
-        (qd_vals, pd_vals) = (Array{Float32}(undef, 0, size), Array{Float32}(undef, 0, size))
+        (qd_vals, pd_vals) = (Array{Float32}(undef, size), Array{Float32}(undef, size))
         for (key, value) in data["load"]
             qd_vals[parse(Int, key)] = value["qd"]
             pd_vals[parse(Int, key)] = value["pd"]
@@ -71,7 +71,7 @@ h5open(h5write_filename, "w") do file
 
         # Branch data
         branch = create_group(group, "branch")
-        prisk = Array{Float32}(undef, 0, size)
+        prisk = Array{Float32}(undef, size)
         for (key, value) in data["branch"]
             prisk[parse(Int, key)] = data["branch"][key]["power_risk"]
         end
@@ -94,7 +94,7 @@ h5open(h5write_filename, "w") do file
         # Load data
         load = create_group(group, "load")
         size = length(keys(data["load"]))
-        (qd_vals, pd_vals) = (Array{Float32}(undef, 0, size), Array{Float32}(undef, 0, size))
+        (qd_vals, pd_vals) = (Array{Float32}(undef, size), Array{Float32}(undef, size))
         for (key, value) in data["load"]
             qd_vals[parse(Int, key)] = value["qd"]
             pd_vals[parse(Int, key)] = value["pd"]
@@ -104,7 +104,7 @@ h5open(h5write_filename, "w") do file
 
         # Branch data
         branch = create_group(group, "branch")
-        prisk = Array{Float32}(undef, 0, size)
+        prisk = Array{Float32}(undef, size)
         for (key, value) in data["branch"]
             prisk[parse(Int, key)] = data["branch"][key]["power_risk"]
         end
@@ -127,7 +127,7 @@ h5open(h5write_filename, "w") do file
         # Load data
         load = create_group(group, "load")
         size = length(keys(data["load"]))
-        (qd_vals, pd_vals) = (Array{Float32}(undef, 0, size), Array{Float32}(undef, 0, size))
+        (qd_vals, pd_vals) = (Array{Float32}(undef, size), Array{Float32}(undef, size))
         for (key, value) in data["load"]
             qd_vals[parse(Int, key)] = value["qd"]
             pd_vals[parse(Int, key)] = value["pd"]

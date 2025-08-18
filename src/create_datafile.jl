@@ -1,7 +1,7 @@
 #----------------------------------------------------------------------
 using LinearSOC
 using LinearSOCVerification
-using PGLib, Random
+using PGLib, Random, HDF5
 using Gurobi
 using JuMP
 

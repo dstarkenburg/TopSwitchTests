@@ -1,4 +1,3 @@
-using LinearSOCVerification
 using PGLib, Random
 using Gurobi
 using JuMP

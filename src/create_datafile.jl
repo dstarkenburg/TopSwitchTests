@@ -5,7 +5,7 @@ using PGLib, HDF5
 gurobi_optimizer = Gurobi.Optimizer
 
 # PGLib model
-model_name = "case24_ieee"
+model_name = "case24_ieee" 
 
 # Filename (WILL OVERWRITE)
 h5write_filename = "data_file_24bus.h5"

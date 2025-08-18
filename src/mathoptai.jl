@@ -3,7 +3,7 @@ import Pkg
 using PGLib
 Pkg.build("MathOptAI")
 Pkg.precompile()
-import MathOptAI
+import MathOptAI 
 import MathOptInterface as MOI
 ENV["JULIA_PYTHONCALL_EXE"] = "/pyenv-june/bin/python3"
 import PythonCall

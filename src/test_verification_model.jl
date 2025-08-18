@@ -14,13 +14,14 @@ using Printf
 # 4) set the objective to minimize the total amount of load shed
 data = pglib("case5_")
 data = pglib("case24_ieee")
+data = pglib("case14_")
 
 PowerModels.calc_thermal_limits!(data)
 PowerModels.standardize_cost_terms!(data, order=2)
 ref = PowerModels.build_ref(data)[:it][:pm][:nw][0]
 
 # %% build the model
-model = Model( JuMP.optimizer_with_attributes(Ipopt.Optimizer))#, "Presolve"=> 2,))
+model = Model(JuMP.optimizer_with_attributes(Ipopt.Optimizer))#, "Presolve"=> 2,))
 
 # create a simple classifier which maps load to line probablility
 sigmoid(x) = @. 1/(1+exp(-x))
@@ -38,15 +39,40 @@ for i in keys(ref[:gen])
     ref[:gen][i]["pmin"] = 0.0
 end
 
-# add line binaries 
+# %% add line binaries 
 @warn("adding line binaries")
 @variable(model, 0.0 <= z_branch[l in keys(ref[:branch])] <= 1.0)
 
+#TODO add a constraint which links the loads and NN inputs
+#pd_nn = ref[:load][d]["pd"]^2 * z_demand[d] 
+
+num_loads = length(keys(ref[:load]))
+@variable(model, pd_variable[1:num_loads])
+@variable(model, qd_variable[1:num_loads])
+@variable(model, risk[1:20])
+@variable(model, alpha[1])
+#for d in keys(ref[:load])
+#    pdi = ref[:load][d]["pd"]
+#    qdi = ref[:load][d]["qd"]
+#end
+
+# TODO make sure we add bounds on the following inputs!
+x = [pd_variable;
+     qd_variable;
+     risk;     # these are variables [0.2 - 0.85]
+     alpha]    # this is a variable [0.2 - 0.85]
+
+# %%
+probs = NN(x_in,A,b)
+
+# something like this:
+probs, _ = MathOptAI.add_predictor(model, predictor, x)
+
 #TODO add a NN linking constraint like this:
-probs = NN(x_input,A,b)
+#probs = NN(x_input,A,b) # replace with torch model
+#TODO make sure the NN and the line indices are the same
 @constraint(model, [l in keys(ref[:branch])], z_branch[l] == probs[l])
 
-#TODO add a constraint which links the loads and NN inputs
 
 # add shunt binaries 
 @warn("adding shunt binaries")
@@ -193,7 +219,7 @@ for (i,branch) in ref[:branch]
     JuMP.@constraint(model, p_to^2 + q_to^2 <= rate_a^2)
 end
 
-# maximize load served (i.e., minimize load shed)
+# maximize load served (i.e., minimize load shed) 0 < z <1
 @objective(model, Max, sum(ref[:load][d]["pd"]^2 * z_demand[d] for d in keys(ref[:load])) + 
                        sum(ref[:shunt][s]["gs"]^2 * z_shunt[s] for s in keys(ref[:shunt])))
 

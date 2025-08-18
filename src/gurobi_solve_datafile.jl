@@ -1,8 +1,7 @@
-using PGLib, Random
+using LinearSOC
+using PGLib, Random, HDF5
 using Gurobi
 using JuMP
-using Printf
-using HDF5
 
 ##################################################################
 # STOP      STOP       STOP        STOP        STOP        STOP

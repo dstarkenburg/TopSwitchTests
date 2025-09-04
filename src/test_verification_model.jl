@@ -14,7 +14,7 @@ using Printf
 # 4) set the objective to minimize the total amount of load shed
 data = pglib("case5_")
 data = pglib("case24_ieee")
-data = pglib("case14_")
+#data = pglib("case14_")
 
 PowerModels.calc_thermal_limits!(data)
 PowerModels.standardize_cost_terms!(data, order=2)
@@ -39,7 +39,7 @@ for i in keys(ref[:gen])
     ref[:gen][i]["pmin"] = 0.0
 end
 
-# %% add line binaries 
+# add line binaries 
 @warn("adding line binaries")
 @variable(model, 0.0 <= z_branch[l in keys(ref[:branch])] <= 1.0)
 
@@ -57,21 +57,20 @@ num_loads = length(keys(ref[:load]))
 #end
 
 # TODO make sure we add bounds on the following inputs!
-x = [pd_variable;
-     qd_variable;
-     risk;     # these are variables [0.2 - 0.85]
-     alpha]    # this is a variable [0.2 - 0.85]
+#x = [pd_variable;
+#     qd_variable;
+#     risk;     # these are variables [0.2 - 0.85]
+#     alpha]    # this is a variable [0.2 - 0.85]
 
-# %%
-probs = NN(x_in,A,b)
+# probs = NN(x_in,A,b)
 
 # something like this:
-probs, _ = MathOptAI.add_predictor(model, predictor, x)
+# probs, _ = MathOptAI.add_predictor(model, predictor, x)
 
 #TODO add a NN linking constraint like this:
 #probs = NN(x_input,A,b) # replace with torch model
 #TODO make sure the NN and the line indices are the same
-@constraint(model, [l in keys(ref[:branch])], z_branch[l] == probs[l])
+@constraint(model, [l in keys(ref[:branch])], z_branch[l] == 1.0)
 
 
 # add shunt binaries 
@@ -96,7 +95,7 @@ probs, _ = MathOptAI.add_predictor(model, predictor, x)
 @variable(model, wr[(i,j) in keys(ref[:buspairs])] )
 @variable(model, wi[(i,j) in keys(ref[:buspairs])] )
 
-    # lanl-ansi/PowerModels.jl/src/core/ref.jl #117
+# lanl-ansi/PowerModels.jl/src/core/ref.jl #117
 wr_min, wr_max, wi_min, wi_max = ref_calc_voltage_product_bounds(ref[:buspairs])
 for bp in keys(ref[:buspairs])
     JuMP.set_lower_bound(wr[bp], wr_min[bp])
@@ -167,11 +166,11 @@ for (i,branch) in ref[:branch]
     b_to = branch["b_to"]
     tm = branch["tap"]
 
-    p_fr = p[f_idx]
-    q_fr = q[f_idx]
-    w_fr = w[f_bus]
-    wr_ij   = wr[(f_bus, t_bus)]
-    wi_ij   = wi[(f_bus, t_bus)]
+    p_fr  = p[f_idx]
+    q_fr  = q[f_idx]
+    w_fr  = w[f_bus]
+    wr_ij = wr[(f_bus, t_bus)]
+    wi_ij = wi[(f_bus, t_bus)]
 
     p_to = p[t_idx]
     q_to = q[t_idx]
@@ -226,3 +225,6 @@ end
 # Solve
 optimize!(model)
 objective_value(model)  |> println
+
+# %% Parameterize the problem
+

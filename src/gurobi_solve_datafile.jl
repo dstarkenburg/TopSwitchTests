@@ -36,8 +36,7 @@ end
 
 data = pglib(model_name)
 generate_risk!(data, 1)
-gurobi_optimizer = Gurobi.Optimizer
-
+gurobi_optimizer = optimizer_with_attributes(Gurobi.Optimizer, "MIPGap" => 0.01)
 
 while (test_index != test_sample_total + 1 && number_to_solve != 0)
     h5open(output_file, "r+") do file

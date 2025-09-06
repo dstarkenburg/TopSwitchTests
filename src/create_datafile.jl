@@ -60,14 +60,15 @@ for i in 1:n_test
 
     # Load data
     load = create_group(group, "load")
-    load_size = length(keys(data["load"]))
-    (qd_vals, pd_vals) = (Array{Float32}(undef, load_size), Array{Float32}(undef, load_size))
+    load_size = length(keys(data["bus"]))
+    (qd_vals, pd_vals) = (zeros(Float32, load_size), zeros(Float32, load_size))
     for (key, value) in data["load"]
-        qd_vals[parse(Int, key)] = value["qd"]
-        pd_vals[parse(Int, key)] = value["pd"]
+        qd_vals[value["load_bus"]] = value["qd"]
+        pd_vals[value["load_bus"]] = value["pd"]
     end
     write_dataset(load, "qd", qd_vals)
     write_dataset(load, "pd", pd_vals)
+
 
     # Branch data
     branch = create_group(group, "branch")
@@ -94,11 +95,11 @@ for i in 1:n_train
 
     # Load data
     load = create_group(group, "load")
-    load_size = length(keys(data["load"]))
-    (qd_vals, pd_vals) = (Array{Float32}(undef, load_size), Array{Float32}(undef, load_size))
+    load_size = length(keys(data["bus"]))
+    (qd_vals, pd_vals) = (zeros(Float32, load_size), zeros(Float32, load_size))
     for (key, value) in data["load"]
-        qd_vals[parse(Int, key)] = value["qd"]
-        pd_vals[parse(Int, key)] = value["pd"]
+        qd_vals[value["load_bus"]] = value["qd"]
+        pd_vals[value["load_bus"]] = value["pd"]
     end
     write_dataset(load, "qd", qd_vals)
     write_dataset(load, "pd", pd_vals)
@@ -128,11 +129,11 @@ for i in 1:n_val
 
     # Load data
     load = create_group(group, "load")
-    load_size = length(keys(data["load"]))
-    (qd_vals, pd_vals) = (Array{Float32}(undef, load_size), Array{Float32}(undef, load_size))
+    load_size = length(keys(data["bus"]))
+    (qd_vals, pd_vals) = (zeros(Float32, load_size), zeros(Float32, load_size))
     for (key, value) in data["load"]
-        qd_vals[parse(Int, key)] = value["qd"]
-        pd_vals[parse(Int, key)] = value["pd"]
+        qd_vals[value["load_bus"]] = value["qd"]
+        pd_vals[value["load_bus"]] = value["pd"]
     end
     write_dataset(load, "qd", qd_vals)
     write_dataset(load, "pd", pd_vals)

@@ -185,7 +185,7 @@ model = Model(Ipopt.Optimizer)
 # => zl = sig(Ann*[pd0_var; qd0_var] + bnn)
 
 x = [pd0_var; qd0_var; risk; alpha]
-predictor = MathOptAI.PytorchModel(joinpath(@__DIR__, "trained_model.pt"))
+predictor = MathOptAI.PytorchModel(joinpath(@__DIR__, "14bus_new_trained.pt"))
 zl, _ = MathOptAI.add_predictor(model, predictor, x)
 
 #σ(x) = 1 / (1 + exp(-x))

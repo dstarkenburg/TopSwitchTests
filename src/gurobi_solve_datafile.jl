@@ -14,6 +14,8 @@ using JuMP
 model_name = "case14_ieee"
 # Name of the file generated using create_datafile.jl
 output_file = "data_file_14bus.h5"
+# MIPGap percent to use in Gurobi
+mip_gap = 0.05
 
 # File will keep track of how many of the total samples have been solved
 # automatically by default (-1).
@@ -26,19 +28,15 @@ global number_to_solve = -1
 
 ##################################################################
 h5open(output_file, "r+") do file
-    global test_index = file["test_data"]["index"][1]
-    global test_sample_total = file["test_data"]["num_samples"][1]
-    global train_index = file["train_data"]["index"][1]
-    global train_sample_total = file["train_data"]["num_samples"][1]
-    global val_index = file["val_data"]["index"][1]
-    global val_sample_total = file["val_data"]["num_samples"][1]
+    global sample_index = file["sample_data"]["index"][1]
+    global sample_total = file["sample_data"]["num_samples"][1]
 end
 
 data = pglib(model_name)
 generate_risk!(data, 1)
-gurobi_optimizer = optimizer_with_attributes(Gurobi.Optimizer, "MIPGap" => 0.01)
+gurobi_optimizer = optimizer_with_attributes(Gurobi.Optimizer, "MIPGap" => mip_gap)
 
-while (test_index != test_sample_total + 1 && number_to_solve != 0)
+while (sample_index != sample_total + 1 && number_to_solve != 0)
     h5open(output_file, "r+") do file
         for (id, comp) in data["load"]
             comp["qd"] = file["test_data"][string(test_index)]["load"]["qd"][parse(Int, id)]
@@ -61,66 +59,6 @@ while (test_index != test_sample_total + 1 && number_to_solve != 0)
         write_dataset(file["test_data"][string(test_index)]["branch"], "status", b_status)
         global test_index += 1
         file["test_data"]["index"][1] = test_index
-    end
-
-    if (number_to_solve != -1 && number_to_solve != 0)
-        global number_to_solve -= 1
-    end
-end
-
-while (train_index != train_sample_total + 1 && number_to_solve != 0)
-    h5open(output_file, "r+") do file
-        for (id, comp) in data["load"]
-            comp["qd"] = file["train_data"][string(train_index)]["load"]["qd"][parse(Int, id)]
-            comp["pd"] = file["train_data"][string(train_index)]["load"]["pd"][parse(Int, id)]
-        end
-        data["risk_weight"] = file["train_data"][string(train_index)]["alpha"][1]
-        for (id, comp) in data["branch"]
-            comp["power_risk"] = file["train_data"][string(train_index)]["branch"]["power_risk"][parse(Int, id)]
-        end
-    end
-        
-    solution = solve_ops(data, gurobi_optimizer)
-
-    size = length(solution["solution"]["branch"])
-    b_status = Array{Float32}(undef, size)
-    for (key, value) in solution["solution"]["branch"]
-        b_status[parse(Int, key)] = value["br_status"]
-    end
-    h5open(output_file, "r+") do file
-        write_dataset(file["train_data"][string(train_index)]["branch"], "status", b_status)
-        global train_index += 1
-        file["train_data"]["index"][1] = train_index
-    end
-
-    if (number_to_solve != -1 && number_to_solve != 0)
-        global number_to_solve -= 1
-    end
-end
-    
-while (val_index != val_sample_total + 1 && number_to_solve != 0)
-    h5open(output_file, "r+") do file
-        for (id, comp) in data["load"]
-            comp["qd"] = file["val_data"][string(val_index)]["load"]["qd"][parse(Int, id)]
-            comp["pd"] = file["val_data"][string(val_index)]["load"]["pd"][parse(Int, id)]
-        end
-        data["risk_weight"] = file["val_data"][string(val_index)]["alpha"][1]
-        for (id, comp) in data["branch"]
-            comp["power_risk"] = file["val_data"][string(val_index)]["branch"]["power_risk"][parse(Int, id)]
-        end
-    end
-        
-    solution = solve_ops(data, gurobi_optimizer)
-
-    size = length(solution["solution"]["branch"])
-    b_status = Array{Float32}(undef, size)
-    for (key, value) in solution["solution"]["branch"]
-        b_status[parse(Int, key)] = value["br_status"]
-    end
-    h5open(output_file, "r+") do file
-        write_dataset(file["val_data"][string(val_index)]["branch"], "status", b_status)
-        global val_index += 1
-        file["val_data"]["index"][1] = val_index
     end
 
     if (number_to_solve != -1 && number_to_solve != 0)

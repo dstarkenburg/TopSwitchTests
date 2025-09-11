@@ -1,3 +1,4 @@
+
 import torch
 import h5py
 import numpy as np
@@ -9,57 +10,39 @@ from torch.utils.data import DataLoader
 import pandas as pd
 
 # Hyperparams
-epochs = 15
+epochs = 50
 
-hidden_dim_depth = 10
+hidden_dim_depth = 100
 
-batch_sizes = 100
+batch_sizes = 20
 
-dropout_percent = 0.2
+dropout_percent = 0.6
 
 learn_rate = 1e-4
 
 filename = "data_file_14bus.h5"
 
+percent_train = 0.8
+percent_val = 0.1
+percent_test = 0.1
+
 # Import and format data
-x_train_temp = []
-y_train_temp = []
-with h5py.File(filename, "r") as f:
-    for i in f["train_data"].keys():
-        temp_power_risk = torch.tensor(np.array(f["train_data"][i]["branch"]["power_risk"][()]), dtype=torch.float32)
-        temp_qd = torch.tensor(np.array(f["train_data"][i]["load"]["qd"][()]), dtype=torch.float32)
-        temp_pd = torch.tensor(np.array(f["train_data"][i]["load"]["pd"][()]), dtype=torch.float32)
-        temp_alpha = torch.tensor(np.array(f["train_data"][i]["alpha"][()]), dtype=torch.float32)
-        x = torch.cat([temp_power_risk, temp_qd, temp_pd, temp_alpha], dim = 0)
-        y = torch.tensor(np.array(f["train_data"][i]["branch"]["status"][()]), dtype=torch.float32)
-        x_train_temp.append(x)
-        y_train_temp.append(y)
+if (percent_test + percent_train + percent_val != 1):
+    exit(code = "Data split unevenly!")
 
-x_test_temp = []
-y_test_temp = []
+x_sample_temp = []
+y_sample_temp = []
 with h5py.File(filename, "r") as f:
-    for i in f["test_data"].keys():
-        temp_power_risk = torch.tensor(np.array(f["test_data"][i]["branch"]["power_risk"][()]), dtype=torch.float32)
-        temp_qd = torch.tensor(np.array(f["test_data"][i]["load"]["qd"][()]), dtype=torch.float32)
-        temp_pd = torch.tensor(np.array(f["test_data"][i]["load"]["pd"][()]), dtype=torch.float32)
-        temp_alpha = torch.tensor(np.array(f["test_data"][i]["alpha"][()]), dtype=torch.float32)
-        x = torch.cat([temp_power_risk, temp_qd, temp_pd, temp_alpha], dim = 0)
-        y = torch.tensor(np.array(f["test_data"][i]["branch"]["status"][()]), dtype=torch.float32)
-        x_test_temp.append(x)
-        y_test_temp.append(y)
-
-x_val_temp = []
-y_val_temp = []
-with h5py.File(filename, "r") as f:
-    for i in f["val_data"].keys():
-        temp_power_risk = torch.tensor(np.array(f["val_data"][i]["branch"]["power_risk"][()]), dtype=torch.float32)
-        temp_qd = torch.tensor(np.array(f["val_data"][i]["load"]["qd"][()]), dtype=torch.float32)
-        temp_pd = torch.tensor(np.array(f["val_data"][i]["load"]["pd"][()]), dtype=torch.float32)
-        temp_alpha = torch.tensor(np.array(f["val_data"][i]["alpha"][()]), dtype=torch.float32)
-        x = torch.cat([temp_power_risk, temp_qd, temp_pd, temp_alpha], dim = 0)
-        y = torch.tensor(np.array(f["val_data"][i]["branch"]["status"][()]), dtype=torch.float32)
-        x_val_temp.append(x)
-        y_val_temp.append(y)
+    for i in f["sample_data"].keys():
+        if i != "num_samples" and i != "index" and len(f["sample_data"][i]["branch"]) == 2:
+            temp_power_risk = torch.tensor(np.array(f["sample_data"][i]["branch"]["power_risk"][()]), dtype=torch.float32)
+            temp_qd = torch.tensor(np.array(f["sample_data"][i]["load"]["qd"][()]), dtype=torch.float32)
+            temp_pd = torch.tensor(np.array(f["sample_data"][i]["load"]["pd"][()]), dtype=torch.float32)
+            temp_alpha = torch.tensor(np.array(f["sample_data"][i]["alpha"][()]), dtype=torch.float32)
+            x = torch.cat([temp_power_risk, temp_qd, temp_pd, temp_alpha], dim = 0)
+            y = torch.tensor(np.array(f["sample_data"][i]["branch"]["status"][()]), dtype=torch.float32)
+            x_sample_temp.append(x)
+            y_sample_temp.append(y)
 
 class OpsDataset(torch.utils.data.Dataset):
     def __init__(self, inputs, truths):
@@ -70,33 +53,30 @@ class OpsDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         return self.inputs[idx], self.truths[idx]
 
-num_branches = len(y_test_temp[1])
-input_dim = len(x_test_temp[1])
+num_branches = len(y_sample_temp[1])
+input_dim = len(x_sample_temp[1])
 
 # Try normalizing inputs 
-mean = torch.mean(torch.stack(x_train_temp), dim=0)
-std = torch.std(torch.stack(x_train_temp), dim=0) + 1e-6
-x_train_temp = [(x - mean) / std for x in x_train_temp]
-x_test_temp = [(x - mean) / std for x in x_test_temp]
-x_val_temp = [(x - mean) / std for x in x_val_temp]
+mean = torch.mean(torch.stack(x_sample_temp), dim=0)
+std = torch.std(torch.stack(x_sample_temp), dim=0) + 1e-6
+x_sample_temp = [(x - mean) / std for x in x_sample_temp]
 
-train_dataset = OpsDataset(x_train_temp, y_train_temp)
-test_dataset = OpsDataset(x_test_temp, y_test_temp)
-val_dataset = OpsDataset(x_val_temp, y_val_temp)
+data = OpsDataset(x_sample_temp, y_sample_temp)
+
+train_dataset, test_dataset, val_dataset = torch.utils.data.random_split(data, (percent_train, percent_test, percent_val))
 
 model = torch.nn.Sequential(torch.nn.Linear(input_dim, hidden_dim_depth),
                             torch.nn.ReLU(),
                             torch.nn.Dropout(dropout_percent),
-                            torch.nn.Linear(input_dim, hidden_dim_depth),
-                            torch.nn.ReLU(), torch.nn.Dropout(dropout_percent),
-                            torch.nn.Linear(input_dim, hidden_dim_depth),
-                            torch.nn.ReLU(), torch.nn.Dropout(dropout_percent),
+                            torch.nn.Linear(hidden_dim_depth, hidden_dim_depth),
+                            torch.nn.ReLU(),
+                            torch.nn.Dropout(dropout_percent),
                             torch.nn.Linear(hidden_dim_depth, num_branches))
 optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
 
-train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size = batch_sizes)
-test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size = batch_sizes)
-val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size = batch_sizes)
+train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size = batch_sizes, drop_last=True)
+test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size = batch_sizes, drop_last=True)
+val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size = batch_sizes, drop_last=True)
 
 train_losses = []
 val_losses = []
@@ -140,7 +120,7 @@ for i in range(epochs):
 preds_vec = []
 truths_vec = []
 with torch.no_grad():
-    for input, truth in test_dataloader:
+    for input, truth in val_dataloader:
         input, truth = input.to(device), truth.to(device)
         outputs = model(input)
         probs = torch.sigmoid(outputs)
@@ -152,6 +132,7 @@ with torch.no_grad():
 
 total = len(preds_vec)
 correct = 0
+
 for e, i in enumerate(preds_vec):
     if (i == truths_vec[e]).sum().item() == num_branches:
         correct += 1
@@ -161,14 +142,13 @@ print(f"Total Accuracy Average: {correct / total * 100:.4f}")
 total = 0
 correct = 0
 with torch.no_grad():
-    for input, truth in test_dataloader:
+    for input, truth in val_dataloader:
         input, truth = input.to(device), truth.to(device)
         outputs = model(input)
         probs = torch.sigmoid(outputs)
         preds = (probs > 0.5).float()
         correct += (preds == truth).sum().item()
         total += torch.numel(truth)
-
 print(f"Branchwise Accuracy Average: {correct / total * 100:.4f}")
         
 
@@ -178,6 +158,7 @@ plt.title('Loss Curves')
 plt.xlabel('Epochs')
 plt.ylabel('Loss')
 plt.legend()
-plt.show()
+plt.savefig("output.png", dpi=300)
+#plt.show()
 
 

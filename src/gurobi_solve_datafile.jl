@@ -11,9 +11,9 @@ using JuMP
 ##################################################################
 
 # PGLib model
-model_name = "case14_ieee"
+model_name = "case24_ieee"
 # Name of the file generated using create_datafile.jl
-output_file = "data_file_14bus.h5"
+output_file = "data_file_24bus.h5"
 # MIPGap percent to use in Gurobi
 mip_gap = 0.05
 
@@ -39,12 +39,12 @@ gurobi_optimizer = optimizer_with_attributes(Gurobi.Optimizer, "MIPGap" => mip_g
 while (sample_index != sample_total + 1 && number_to_solve != 0)
     h5open(output_file, "r+") do file
         for (id, comp) in data["load"]
-            comp["qd"] = file["test_data"][string(test_index)]["load"]["qd"][parse(Int, id)]
-            comp["pd"] = file["test_data"][string(test_index)]["load"]["pd"][parse(Int, id)]
+            comp["qd"] = file["sample_data"][string(sample_index)]["load"]["qd"][parse(Int, id)]
+            comp["pd"] = file["sample_data"][string(sample_index)]["load"]["pd"][parse(Int, id)]
         end
-        data["risk_weight"] = file["test_data"][string(test_index)]["alpha"][1]
+        data["risk_weight"] = file["sample_data"][string(sample_index)]["alpha"][1]
         for (id, comp) in data["branch"]
-            comp["power_risk"] = file["test_data"][string(test_index)]["branch"]["power_risk"][parse(Int, id)]
+            comp["power_risk"] = file["sample_data"][string(sample_index)]["branch"]["power_risk"][parse(Int, id)]
         end
     end
     
@@ -56,9 +56,9 @@ while (sample_index != sample_total + 1 && number_to_solve != 0)
         b_status[parse(Int, key)] = value["br_status"]
     end
     h5open(output_file, "r+") do file
-        write_dataset(file["test_data"][string(test_index)]["branch"], "status", b_status)
-        global test_index += 1
-        file["test_data"]["index"][1] = test_index
+        write_dataset(file["sample_data"][string(sample_index)]["branch"], "status", b_status)
+        global sample_index += 1
+        file["sample_data"]["index"][1] = sample_index
     end
 
     if (number_to_solve != -1 && number_to_solve != 0)

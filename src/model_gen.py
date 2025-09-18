@@ -10,17 +10,17 @@ from torch.utils.data import DataLoader
 import pandas as pd
 
 # Hyperparams
-epochs = 50
+epochs = 150
 
-hidden_dim_depth = 100
+hidden_dim_depth = 512
 
-batch_sizes = 20
+batch_sizes = 5
 
-dropout_percent = 0.6
+dropout_percent = 0.65
 
 learn_rate = 1e-4
 
-filename = "data_file_14bus.h5"
+filename = "data_file_24bus.h5"
 
 percent_train = 0.8
 percent_val = 0.1
@@ -71,6 +71,8 @@ model = torch.nn.Sequential(torch.nn.Linear(input_dim, hidden_dim_depth),
                             torch.nn.Linear(hidden_dim_depth, hidden_dim_depth),
                             torch.nn.ReLU(),
                             torch.nn.Dropout(dropout_percent),
+                            torch.nn.Linear(hidden_dim_depth, hidden_dim_depth),
+                            torch.nn.ReLU(),
                             torch.nn.Linear(hidden_dim_depth, num_branches))
 optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
 

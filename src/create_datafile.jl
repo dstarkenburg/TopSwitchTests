@@ -4,10 +4,10 @@ using PGLib, Random, HDF5
 using JuMP
 
 # PGLib model
-model_name = "case24_ieee" 
+model_name = "case118_ieee" 
 
 # Filename (WILL OVERWRITE)
-h5write_filename = "data_file_24bus.h5"
+h5write_filename = "data_file_118bus.h5"
 
 # Number of datasets
 n_data = 100000
@@ -37,7 +37,7 @@ end
 file = h5open(h5write_filename, "w")
 write_dataset(file, "alpha_max", alpha_max)
 write_dataset(file, "alpha_min", alpha_min)
-write_dataset(file, "total_samples", total_samples)
+write_dataset(file, "total_samples", n_data)
 write_dataset(file, "perturb_percent", perturb_percent)
 
 g_data = create_group(file, "sample_data")

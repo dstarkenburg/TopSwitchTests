@@ -11,9 +11,9 @@ using JuMP
 ##################################################################
 
 # PGLib model
-model_name = "case24_ieee"
+model_name = "case118_ieee"
 # Name of the file generated using create_datafile.jl
-output_file = "data_file_24bus.h5"
+output_file = "data_file_118bus.h5"
 # MIPGap percent to use in Gurobi
 mip_gap = 0.05
 

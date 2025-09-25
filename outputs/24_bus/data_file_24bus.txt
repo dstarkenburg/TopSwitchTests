@@ -1,0 +1,45 @@
+# Hyperparams
+alpha_min = 0.25
+alpha_max = 0.85
+perturb_percent = 0.50
+
+# MIPGap percent to use in Gurobi
+mip_gap = 0.01
+solve = solve_ops
+
+epochs = 150
+
+hidden_dim_depth = 
+    32:
+        Total Accuracy Average: 12.9825
+        Branchwise Accuracy Average: 85.3370
+    128:
+        Total Accuracy Average: 12.2807
+        Branchwise Accuracy Average: 88.1348
+    512: 
+        Total Accuracy Average: 13.6842
+        Branchwise Accuracy Average: 86.4543
+    2048:
+        Total Accuracy Average: 15.7895
+        Branchwise Accuracy Average: 87.9963
+
+batch_sizes = 5
+
+dropout_percent = 0.2
+
+learn_rate = 1e-4
+
+percent_train = 0.8
+percent_val = 0.1
+percent_test = 0.1
+
+Sequential(Linear(input_dim, hidden_dim_depth),
+           ReLU(),
+           Dropout(dropout_percent),
+           Linear(hidden_dim_depth, hidden_dim_depth),
+           ReLU(),
+           Dropout(dropout_percent),
+           Linear(hidden_dim_depth, hidden_dim_depth),
+           ReLU(),
+           Dropout(dropout_percent),
+           Linear(hidden_dim_depth, num_branches))

@@ -1,5 +1,2 @@
-test/data_file_14bus.h5 filter=lfs diff=lfs merge=lfs -text
-test/data_file_24bus.h5 filter=lfs diff=lfs merge=lfs -text
-src/data_file_14bus.h5 filter=lfs diff=lfs merge=lfs -text
-data_file_24busORIG.h5 filter=lfs diff=lfs merge=lfs -text
-src/data_file_24busORIG.h5 filter=lfs diff=lfs merge=lfs -text
+outputs/14_bus/data_file_14bus.h5 filter=lfs diff=lfs merge=lfs -text
+outputs/24_bus/data_file_24bus.h5 filter=lfs diff=lfs merge=lfs -text

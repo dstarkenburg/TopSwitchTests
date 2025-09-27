@@ -1,4 +1,3 @@
-
 import torch
 import h5py
 import numpy as np
@@ -14,13 +13,13 @@ epochs = 150
 
 hidden_dim_depth = 2048
 
-batch_sizes = 5
+batch_sizes = 1
 
 dropout_percent = 0.2
 
 learn_rate = 1e-4
 
-filename = "data_file_24bus.h5"
+filename = "data_file_118bus.h5"
 
 percent_train = 0.8
 percent_val = 0.1
@@ -163,7 +162,13 @@ plt.title('Loss Curves')
 plt.xlabel('Epochs')
 plt.ylabel('Loss')
 plt.legend()
-plt.savefig("output.png", dpi=300)
+plt.savefig("118_bus_2048node.png", dpi=300)
 #plt.show()
+
+model.eval()
+
+new_model = nn.Sequential(model[0], model[1], model[3], model[4], model[6], model[7], model[9])
+
+torch.save(new_model, "118_bus_2048node.pt")
 
 

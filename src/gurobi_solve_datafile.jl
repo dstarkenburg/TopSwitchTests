@@ -34,7 +34,7 @@ end
 
 data = pglib(model_name)
 generate_risk!(data, 1)
-gurobi_optimizer = optimizer_with_attributes(Gurobi.Optimizer, "MIPGap" => mip_gap)
+gurobi_optimizer = optimizer_with_attributes(Gurobi.Optimizer, "MIPGap" => mip_gap, "NodeFileStart" => 2.0)
 
 while (sample_index != sample_total + 1 && number_to_solve != 0)
     h5open(output_file, "r+") do file
@@ -48,7 +48,7 @@ while (sample_index != sample_total + 1 && number_to_solve != 0)
         end
     end
     
-    solution = solve_ops(data, gurobi_optimizer)
+    solution = solve_ops_perp(data, gurobi_optimizer)
 
     size = length(solution["solution"]["branch"])
     b_status = Array{Float32}(undef, size)

@@ -33,6 +33,8 @@ percent_train = 0.8
 percent_val = 0.1
 percent_test = 0.1
 
+[power_risk, qd, pd, alpha]
+
 Sequential(Linear(input_dim, hidden_dim_depth),
            ReLU(),
            Dropout(dropout_percent),

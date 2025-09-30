@@ -33,6 +33,9 @@ percent_train = 0.8
 percent_val = 0.1
 percent_test = 0.1
 
+# order of flattened input vector
+[power_risk, qd, pd, alpha]
+
 Sequential(Linear(input_dim, hidden_dim_depth),
            ReLU(),
            Dropout(dropout_percent),
@@ -43,3 +46,8 @@ Sequential(Linear(input_dim, hidden_dim_depth),
            ReLU(),
            Dropout(dropout_percent),
            Linear(hidden_dim_depth, num_branches))
+
+# input data normalization
+mean = torch.mean(torch.stack(x_sample_temp), dim=0)
+std = torch.std(torch.stack(x_sample_temp), dim=0) + 1e-6
+x_sample_temp = [(x - mean) / std for x in x_sample_temp]

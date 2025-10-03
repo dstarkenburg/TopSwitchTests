@@ -12,16 +12,17 @@ epochs = 150
 hidden_dim_depth = 
     32:
 	Total Accuracy Average: 0.0000
-	Branchwise Accuracy Average: 73.6559
+	Branchwise Accuracy Average: 64.5161
     128:
 	Total Accuracy Average: 0.0000
-	Branchwise Accuracy Average: 62.9032
+	Branchwise Accuracy Average: 85.2151
     512:
 	Total Accuracy Average: 0.0000
-	Branchwise Accuracy Average: 75.8065
+	Branchwise Accuracy Average: 79.8387
     2048:
 	Total Accuracy Average: 0.0000
-	Branchwise Accuracy Average: 78.7634
+	Branchwise Accuracy Average: 75.2688
+
 
 batch_sizes = 1
 

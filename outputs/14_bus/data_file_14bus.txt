@@ -11,19 +11,17 @@ epochs = 150
 
 hidden_dim_depth = 
     32:
-        Total Accuracy Average: 44.2484
-        Branchwise Accuracy Average: 94.7941
+	Total Accuracy Average: 18.9508
+	Branchwise Accuracy Average: 89.6492
     128:
-        Total Accuracy Average: 49.8039
-        Branchwise Accuracy Average: 95.3497
+	Total Accuracy Average: 33.5082
+	Branchwise Accuracy Average: 93.0492
     512:
-        Total Accuracy Average: 47.3856
-        Branchwise Accuracy Average: 94.9412
+	Total Accuracy Average: 50.4918
+	Branchwise Accuracy Average: 95.5311
     2048:
-        Total Accuracy Average: 42.4183
-        Branchwise Accuracy Average: 94.2843
 
-batch_sizes = 5
+batch_sizes = 25
 
 dropout_percent = 0.2
 
@@ -37,13 +35,13 @@ percent_test = 0.1
 [power_risk, qd, pd, alpha]
 
 Sequential(Linear(input_dim, hidden_dim_depth),
-           ReLU(),
+           Sigmoid(),
            Dropout(dropout_percent),
            Linear(hidden_dim_depth, hidden_dim_depth),
-           ReLU(),
+           Sigmoid(),
            Dropout(dropout_percent),
            Linear(hidden_dim_depth, hidden_dim_depth),
-           ReLU(),
+           Sigmoid(),
            Dropout(dropout_percent),
            Linear(hidden_dim_depth, num_branches))
 

@@ -8,18 +8,22 @@ from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 import pandas as pd
 
+print("1")
+
 # Hyperparams
 epochs = 150
 
 hidden_dim_depth = 2048
 
-batch_sizes = 1
+batch_sizes = 25
 
 dropout_percent = 0.2
 
 learn_rate = 1e-4
 
-filename = "data_file_24bus.h5"
+filename = "TopSwitchTests/outputs/14_bus/data_file_14bus.h5"
+photoname = "TopSwitchTests/outputs/14_bus/14_bus_2048node.png"
+modelname = "TopSwitchTests/outputs/14_bus/14_bus_2048node.pt"
 
 percent_train = 0.8
 percent_val = 0.1
@@ -28,6 +32,8 @@ percent_test = 0.1
 # Import and format data
 if (percent_test + percent_train + percent_val != 1):
     exit(code = "Data split unevenly!")
+
+print("2")
 
 x_sample_temp = []
 y_sample_temp = []
@@ -42,6 +48,8 @@ with h5py.File(filename, "r") as f:
             y = torch.tensor(np.array(f["sample_data"][i]["branch"]["status"][()]), dtype=torch.float32)
             x_sample_temp.append(x)
             y_sample_temp.append(y)
+
+print("3")
 
 class OpsDataset(torch.utils.data.Dataset):
     def __init__(self, inputs, truths):
@@ -67,13 +75,13 @@ data = OpsDataset(x_sample_temp, y_sample_temp)
 train_dataset, test_dataset, val_dataset = torch.utils.data.random_split(data, (percent_train, percent_test, percent_val))
 
 model = torch.nn.Sequential(torch.nn.Linear(input_dim, hidden_dim_depth),
-                            torch.nn.ReLU(),
+                            torch.nn.Sigmoid(),
                             torch.nn.Dropout(dropout_percent),
                             torch.nn.Linear(hidden_dim_depth, hidden_dim_depth),
-                            torch.nn.ReLU(),
+                            torch.nn.Sigmoid(),
                             torch.nn.Dropout(dropout_percent),
                             torch.nn.Linear(hidden_dim_depth, hidden_dim_depth),
-                            torch.nn.ReLU(),
+                            torch.nn.Sigmoid(),
                             torch.nn.Dropout(dropout_percent),
                             torch.nn.Linear(hidden_dim_depth, num_branches))
 optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
@@ -162,13 +170,13 @@ plt.title('Loss Curves')
 plt.xlabel('Epochs')
 plt.ylabel('Loss')
 plt.legend()
-plt.savefig("118_bus_2048node.png", dpi=300)
+plt.savefig(photoname, dpi=300)
 #plt.show()
 
 model.eval()
 
 new_model = nn.Sequential(model[0], model[1], model[3], model[4], model[6], model[7], model[9])
 
-torch.save(new_model, "118_bus_2048node.pt")
+torch.save(new_model, modelname)
 
 

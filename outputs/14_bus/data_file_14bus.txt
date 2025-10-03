@@ -20,6 +20,9 @@ hidden_dim_depth =
 	Total Accuracy Average: 50.4918
 	Branchwise Accuracy Average: 95.5311
     2048:
+	Total Accuracy Average: 54.8852
+	Branchwise Accuracy Average: 95.8557
+
 
 batch_sizes = 25
 
